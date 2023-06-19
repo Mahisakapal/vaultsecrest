@@ -1,0 +1,35 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "Master" branch
+  push:
+    branches: [ "Master" ]
+  pull_request:
+    branches: [ "Master" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+          
+      - id: vault-app-secrets
+        run: |
+          # Retrieve app secrets from the vault
+          data=$(curl -s -H "X-Vault-Token: ${{ env.VAULT_TOKEN }}" -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" "https://public.vault.test.cloud/v1/secret/data/teams/myapp/${{ env.TARGET_ENV }}/${{ env.TARGET_BRAND }}/${{ env.TARGET_LOCALE }}/${{ env.APP_NAME }}")
+          # Get Secrets
+          secrets=$(echo "$data" | jq -r '.data.data')
+          # Create env file
+          echo "$secrets" | jq -r 'to_entries | map("\(.key)=\(.value)")[]' >> .env.txt
